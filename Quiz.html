@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz : Chiffrement de Fichiers</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --error: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #adb5bd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-header {
+            padding: 30px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .quiz-header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            margin-top: 20px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+
+        .question-container {
+            padding: 30px;
+        }
+
+        .question {
+            display: none;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .question.active {
+            display: block;
+        }
+
+        .question h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .option {
+            padding: 16px 20px;
+            background: var(--light);
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border-color: var(--primary);
+        }
+
+        .option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--primary);
+            transform: scaleY(0);
+            transform-origin: bottom;
+            transition: transform 0.3s ease;
+        }
+
+        .option:hover::before {
+            transform: scaleY(1);
+        }
+
+        .option.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none !important;
+        }
+
+        .option.correct {
+            background: rgba(76, 201, 240, 0.1);
+            border-color: var(--success);
+            color: #1a936f;
+        }
+
+        .option.correct::before {
+            background: var(--success);
+            transform: scaleY(1);
+        }
+
+        .option.incorrect {
+            background: rgba(247, 37, 133, 0.05);
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .option.incorrect::before {
+            background: var(--error);
+            transform: scaleY(1);
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: flex-end;
+            padding: 0 30px 30px;
+        }
+
+        .next-btn {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .next-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        .next-btn.hidden {
+            display: none;
+        }
+
+        .next-btn:disabled {
+            background: var(--gray);
+            transform: none;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        #results {
+            text-align: center;
+            padding: 40px;
+        }
+
+        #results h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .score {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 20px 0;
+            animation: bounce 0.5s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .restart-btn {
+            padding: 14px 28px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .restart-btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .quiz-header {
+                padding: 20px;
+            }
+            
+            .question-container, .navigation {
+                padding: 20px;
+            }
+            
+            .question h3 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1>Quiz :</h1>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+        </div>
+
+        <div class="question-container">
+            <!-- Question 1 -->
+            <div class="question active" id="q1">
+                <h3>1. Qu'est-ce que le chiffrement d’un fichier ?</h3>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(1, 'a')">A. C'est l'effacement permanent du fichier</div>
+                    <div class="option" onclick="selectAnswer(1, 'b')">B. C'est la compression d’un fichier pour gagner de l’espace</div>
+                    <div class="option" onclick="selectAnswer(1, 'c')">C. C’est transformer les données pour les rendre inaccessibles sans une clé</div>
+                    <div class="option" onclick="selectAnswer(1, 'd')">D. C'est le renommage du fichier avec un mot de passe</div>
+                </div>
+            </div>
+            <!-- Question 2 -->
+            <div class="question" id="q2">
+                <h3>2. Quel algorithme est utilisé pour chiffrer des fichiers côté client ?</h3>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(2, 'a')">A. MD5</div>
+                    <div class="option" onclick="selectAnswer(2, 'b')">B. AES</div>
+                    <div class="option" onclick="selectAnswer(2, 'c')">C. Base64</div>
+                    <div class="option" onclick="selectAnswer(2, 'd')">D. SHA-256</div>
+                </div>
+            </div>
+
+            <!-- Question 3 -->
+            <div class="question" id="q3">
+                <h3>3. Quelle est la différence principale entre le chiffrement symétrique et asymétrique ?</h3>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(3, 'a')">A. Le chiffrement asymétrique utilise deux clés différentes</div>
+                    <div class="option" onclick="selectAnswer(3, 'b')">B. Le chiffrement symétrique est plus sécurisé</div>
+                    <div class="option" onclick="selectAnswer(3, 'c')">C. Le chiffrement asymétrique fonctionne sans clé</div>
+                    <div class="option" onclick="selectAnswer(3, 'd')">D. Il n’y a aucune différence</div>
+                </div>
+            </div>
+
+            <!-- Question 4 -->
+            <div class="question" id="q4">
+                <h3>4. Comment sécuriser une clé de chiffrement côté client ?</h3>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(4, 'a')">A. La stocker dans localStorage</div>
+                    <div class="option" onclick="selectAnswer(4, 'b')">B. L'écrire en dur dans le code</div>
+                    <div class="option" onclick="selectAnswer(4, 'c')">C. Demander la clé à l'utilisateur</div>
+                    <div class="option" onclick="selectAnswer(4, 'd')">D. Utiliser une clé publique</div>
+                </div>
+            </div>
+
+            <!-- Question 5 -->
+            <div class="question" id="q5">
+                <h3>5. Quel outil est couramment utilisé pour chiffrer des fichiers sous Linux ?</h3>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(5, 'a')">A. Notepad++</div>
+                    <div class="option" onclick="selectAnswer(5, 'b')">B. Paint</div>
+                    <div class="option" onclick="selectAnswer(5, 'c')">C. Excel</div>
+                    <div class="option" onclick="selectAnswer(5, 'd')">D. GPG (GNU Privacy Guard)</div>
+                </div>
+            </div>
+
+            <!-- Question 6 -->
+            <div class="question" id="q6">
+                <h3>6. Quel est le but principal du chiffrement d'un fichier ?</h3>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(6, 'a')">A. Réduire sa taille</div>
+                    <div class="option" onclick="selectAnswer(6, 'b')">B. Rendre les données illisibles sans une clé</div>
+                    <div class="option" onclick="selectAnswer(6, 'c')">C. Supprimer définitivement le fichier</div>
+                    <div class="option" onclick="selectAnswer(6, 'd')">D. Changer son format</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <button class="next-btn hidden" onclick="nextQuestion()">Question Suivante →</button>
+        </div>
+    </div>
+
+    <script>
+        const correctAnswers = {1: 'c', 2: 'b', 3: 'a', 4: 'c', 5: 'd', 6: 'b'};
+        let currentQuestion = 1;
+        let score = 0;
+
+        function selectAnswer(questionId, selectedOption) {
+            const options = document.querySelectorAll(`#q${questionId} .option`);
+            options.forEach(opt => {
+                opt.classList.add('disabled');
+                opt.onclick = null;
+            });
+
+            // Highlight selected answer
+            const selectedElement = event.target;
+            const isCorrect = selectedOption === correctAnswers[questionId];
+            
+            if (isCorrect) {
+                selectedElement.classList.add('correct');
+                score++;
+            } else {
+                selectedElement.classList.add('incorrect');
+                // Show correct answer
+                options.forEach(opt => {
+                    if (opt.getAttribute('onclick')?.includes(`'${correctAnswers[questionId]}'`)) {
+                        opt.classList.add('correct');
+                    }
+                });
+            }
+
+            document.querySelector('.next-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            document.querySelector(`#q${currentQuestion}`).classList.remove('active');
+            currentQuestion++;
+            
+            if (currentQuestion <= 6) {
+                document.querySelector(`#q${currentQuestion}`).classList.add('active');
+                document.querySelector('.next-btn').classList.add('hidden');
+                updateProgress();
+            } else {
+                showResults();
+            }
+        }
+
+        function updateProgress() {
+            const progress = (currentQuestion / 6) * 100;
+            document.getElementById('progress').style.width = `${progress}%`;
+        }
+
+        function showResults() {
+            document.querySelector('.quiz-container').innerHTML = `
+                <div class="quiz-header">
+                    <h1>Résultats du Quiz</h1>
+                </div>
+                <div id="results">
+                    <h2>Votre score</h2>
+                    <div class="score">${score}/6</div>
+                    <p><h1>${getScoreFeedback(score)}</h1></p>
+                    <button class="restart-btn" onclick="location.reload()">Recommencer</button>
+                </div>
+            `;
+        }
+
+        function getScoreFeedback(score) {
+            if (score === 6) return "Parfait! Vous maîtrisez le sujet!🤓​";
+            if (score >= 4) return "Bien joué! Quelques erreurs à revoir.😁​";
+            if (score >= 2) return "Pas mal! Continuez à apprendre.🥲​";
+            return "A travailler! Consultez les bonnes réponses.😭​";
+        }
+    </script>
+</body>
+</html>
